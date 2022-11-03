@@ -1,8 +1,8 @@
 import torch
 from tqdm.auto import tqdm
 
-from writer import Writer
-from utils import get_logger, MetricTracker
+from .writer import Writer
+from .utils import get_logger, MetricTracker
 
 
 class Trainer:
@@ -29,9 +29,10 @@ class Trainer:
         self.checkpoint_dir = trainer_config['save_dir']
         self.len_epoch = trainer_config['len_epoch'] or len(data_loader)
 
+        self.log_dir = self.checkpoint_dir + "/log/" + trainer_config['project_name']
         self.logger = get_logger('trainer', config['trainer']['verbosity'])
         self.writer = Writer(
-            config.log_dir, self.logger, trainer_config['writer'], trainer_config['project_name'], config
+            self.log_dir, self.logger, trainer_config['writer'], trainer_config['project_name'], config
         )
         self.train_metrics = MetricTracker(
             'loss', 'grad norm', writer=self.writer
@@ -44,7 +45,8 @@ class Trainer:
         self.val_data_loader = val_data_loader
         self.do_validation = val_data_loader is not None
 
-        self.accumulate_n = config['data']['accumulate_n']
+        self.accumulate_n = trainer_config['accumulate_n']
+        self.batch_size = data_loader.batch_size
 
     def train(self):
         try:
@@ -59,7 +61,8 @@ class Trainer:
         self.model_32.train()
         self.writer.add_scalar('epoch', epoch)
         for batch_idx, batch in enumerate(
-                tqdm(self.data_loader, desc='train', total=self.len_epoch)
+            tqdm(self.data_loader, desc='train', total=self.len_epoch),
+            start=1
         ):
             try:
                 self._train_iteration(batch, batch_idx)
@@ -98,9 +101,9 @@ class Trainer:
             )
             batch.to('cuda:0')
             loss = self.model_16(**batch, labels=batch['input_ids'], use_cache=False).loss
-            loss = loss / (self.accumulate_n // batch.size(0))  # TODO
+            loss = loss / (self.accumulate_n // self.batch_size)
 
-            self.valid_metrics.update('loss', loss.item(), n=batch.size(0))  # TODO
+            self.valid_metrics.update('loss', loss.item(), n=self.batch_size)
 
         self.writer.set_step(epoch * self.len_epoch, 'valid')
         # self._log_predictions() TODO
@@ -118,10 +121,10 @@ class Trainer:
         batch.to('cuda:0')
 
         loss = self.model_16(**batch, labels=batch['input_ids'], use_cache=False).loss
-        loss = loss / (self.accumulate_n // batch.size(0))  # TODO
+        loss = loss / (self.accumulate_n // self.batch_size)  # TODO
         loss.backward()
 
-        if batch_num == self.accumulate_n:
+        if batch_num % self.accumulate_n == 0:
             self._copy_grad()
 
             self.optimizer.step()

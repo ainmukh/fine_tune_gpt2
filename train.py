@@ -9,13 +9,13 @@ def main(config):
     dataloaders = create_dataloaders(config)
     model_16, model_32, tokenizer = create_models(config)
 
-    optimizer = Adam(get_grouped_params(model_32, config), config['optimizer']['args'])
+    optimizer = Adam(get_grouped_params(model_32, config), **config['optimizer']['args'])
 
     trainer_class = Trainer(
         model_16, model_32,
         tokenizer, optimizer,
         config,
-        dataloaders['train'], val_data_loader=dataloaders['valid']
+        dataloaders['train'], val_data_loader=dataloaders['validation']
     )
     trainer_class.train()
 

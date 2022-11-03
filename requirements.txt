@@ -2,3 +2,4 @@ torch~=1.10.2
 tqdm
 datasets==2.6.1
 transformers
+wandb

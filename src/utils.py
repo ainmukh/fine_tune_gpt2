@@ -1,8 +1,9 @@
-import logging
+import torch
 import transformers
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 import pandas as pd
+import logging
 
 LOG_LEVELS = {0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}
 NO_DECAY = ['bias', 'LayerNorm.weight']
@@ -17,7 +18,7 @@ def create_dataloaders(config) -> dict:
         dataset = load_dataset(path=path, name=name, split=split)
         dataset = dataset[key]
 
-        batch_size = params['batch_size']
+        batch_size = dataset_params['batch_size']
 
         # create dataloader
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -33,16 +34,17 @@ def get_grouped_params(model, config):
         else:
             params_with_wd.append(p)
 
-    weight_decay = config['optimizer']['weight_decay']
+    weight_decay = config['optimizer']['args']['weight_decay']
     return [{'params': params_with_wd, 'weight_decay': weight_decay},
             {'params': params_without_wd, 'weight_decay': 0.0}]
 
 
 def create_models(config):
     model_config = config['model']
-    model_name = model_config['name']
+    model_name = model_config['model_name']
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+    tokenizer.pad_token = tokenizer.eos_token
 
     # gpu model
     model_16 = transformers.GPT2LMHeadModel.from_pretrained(model_name, torch_dtype=torch.float16)
@@ -54,14 +56,14 @@ def create_models(config):
     return model_16, model_32, tokenizer
 
 
-def get_logger(self, name, verbosity: int = 2):
+def get_logger(name, verbosity: int = 2):
     msg_verbosity = "verbosity option {} is invalid. Valid options are {}.".format(
-        verbosity, self.log_levels.keys()
+        verbosity, LOG_LEVELS.keys()
     )
     assert verbosity in LOG_LEVELS, msg_verbosity
     logger = logging.getLogger(name)
     logger.setLevel(LOG_LEVELS[verbosity])
-    print(type(logger))
+    # print(type(logger))  class 'logging.Logger'
     return logger
 
 
