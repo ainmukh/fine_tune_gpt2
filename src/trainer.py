@@ -60,6 +60,8 @@ class Trainer:
     def _train_epoch(self, epoch: int) -> dict:
         self.model_16.train()
         self.model_32.train()
+
+        self.train_metrics.reset()
         self.writer.add_scalar('epoch', epoch)
         for batch_idx, batch in enumerate(
             tqdm(self.data_loader, desc='train', total=self.len_epoch),
@@ -86,6 +88,7 @@ class Trainer:
             val_log = self._valid_epoch(epoch)
             log.update(**{'val_' + k: v for k, v in val_log.items()})
 
+        print('Max memory allocated: {:.2f}GB'.format(torch.cuda.max_memory_allocated() / 2 ** 30))
         return log
 
     def _valid_epoch(self, epoch):
@@ -126,6 +129,7 @@ class Trainer:
         loss.backward()
 
         if batch_num % self.accumulate_n == 0:
+            self.train_metrics.update('grad norm', self._get_grad_norm())
             self._copy_grad()
 
             self.optimizer.step()
@@ -133,6 +137,7 @@ class Trainer:
 
             self._copy_param()
 
+        self.train_metrics.update('loss', loss.item())
         if batch_num % self.log_step == 0 and batch_num:
             self._log_scalars(self.train_metrics)
 
@@ -182,3 +187,16 @@ class Trainer:
         filename = str(self.checkpoint_dir / 'checkpoint-epoch{}.pth'.format(epoch))
         torch.save(state, filename)
         self.logger.info('Saving checkpoint: {} ...'.format(filename))
+
+    def _get_grad_norm(self, norm_type=2):
+        parameters = self.model_16.parameters()
+        if isinstance(parameters, torch.Tensor):
+            parameters = [parameters]
+        parameters = [p for p in parameters if p.grad is not None]
+        total_norm = torch.norm(
+            torch.stack(
+                [torch.norm(p.grad.detach(), norm_type).cpu() for p in parameters]
+            ),
+            norm_type,
+        )
+        return total_norm.item()
