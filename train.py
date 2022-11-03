@@ -1,6 +1,6 @@
 import argparse
 from torch.optim import Adam
-from src.config_parser import ConfigParser
+from src.config_parser import create_config
 from src.utils import create_dataloaders, create_models, get_grouped_params
 from src.trainer import Trainer
 
@@ -30,5 +30,5 @@ if __name__ == '__main__':
         help="config file path (default: None)",
     )
 
-    config = ConfigParser.from_args(args)
+    config = create_config(args)
     main(config)
