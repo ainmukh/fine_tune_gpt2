@@ -1,0 +1,32 @@
+{
+  "data": {
+    "train": {
+      "dataset": {
+        "path": "wikitext",
+        "name": "wikitext-2-v1",
+        "key": "text",
+        "batch_size": 2
+      }
+    },
+    "valid": {
+      "dataset": {
+        "path": "wikitext",
+        "name": "wikitext-2-v1",
+        "key": "text",
+        "batch_size": 2
+      }
+    },
+    "accumulate_n": 32
+  },
+  "optimizer": {
+
+  },
+  "trainer": {
+    "epochs": 50,
+    "save_every": 2,
+    "verbosity": 2,
+    "writer": "wandb",
+    "project_name": "gpt2-large",
+    "len_epoch": null
+  }
+}
