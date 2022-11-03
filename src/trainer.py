@@ -40,6 +40,7 @@ class Trainer:
         self.valid_metrics = MetricTracker(
             'loss', writer=self.writer
         )
+        self.log_step = 10
 
         self.data_loader = data_loader
         self.val_data_loader = val_data_loader
@@ -80,12 +81,12 @@ class Trainer:
             if batch_idx >= self.len_epoch:
                 break
 
-            log = self.train_metrics.result()
-            if self.do_validation:
-                val_log = self._valid_epoch(epoch)
-                log.update(**{'val_' + k: v for k, v in val_log.items()})
+        log = self.train_metrics.result()
+        if self.do_validation:
+            val_log = self._valid_epoch(epoch)
+            log.update(**{'val_' + k: v for k, v in val_log.items()})
 
-            return log
+        return log
 
     def _valid_epoch(self, epoch):
         self.model_16.eval()
@@ -131,6 +132,15 @@ class Trainer:
             self.optimizer.zero_grad()
 
             self._copy_param()
+
+        if batch_num % self.log_step == 0 and batch_num:
+            self._log_scalars(self.train_metrics)
+
+    def _log_scalars(self, metric_tracker: MetricTracker):
+        if self.writer is None:
+            return
+        for metric_name in metric_tracker.keys():
+            self.writer.add_scalar(f'{metric_name}', metric_tracker.avg(metric_name))
 
     def _copy_grad(self):
         for p_32, p_16 in zip(self.model_32.parameters(), self.model_16.parameters()):

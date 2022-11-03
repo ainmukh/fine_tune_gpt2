@@ -16,7 +16,7 @@ def create_dataloaders(config) -> dict:
         dataset_params = params['dataset']
         path, name, key = dataset_params['path'], dataset_params['name'], dataset_params['key']
         dataset = load_dataset(path=path, name=name, split=split)
-        dataset = dataset[key]
+        dataset = dataset.unique(key)
 
         batch_size = dataset_params['batch_size']
 
