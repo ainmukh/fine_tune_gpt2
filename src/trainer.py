@@ -187,9 +187,10 @@ class Trainer:
         for p_32, p_16 in zip(self.model_32.parameters(), self.model_16.parameters()):
             p_32.grad = p_16.grad.to('cpu', dtype=torch.float32)
 
+    @torch.no_grad()
     def _copy_param(self):
         for p_32, p_16 in zip(self.model_32.parameters(), self.model_16.parameters()):
-            p_16 = p_32.to('cuda', dtype=torch.float16)  # TODO
+            p_16.copy_(p_32.to('cuda', dtype=torch.float16))  # TODO
 
     def _save_checkpoint(self, epoch):
         """
