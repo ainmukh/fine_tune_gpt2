@@ -159,7 +159,7 @@ class Trainer:
                 )
                 batch.to('cuda:0')
                 loss = self.model_16(**batch, labels=batch['input_ids'], use_cache=False).loss
-                loss = loss
+                loss = loss / self.accumulate_n
 
                 batch.to('cpu')
 
@@ -200,7 +200,7 @@ class Trainer:
             'state_dict': self.model_32.state_dict()
         }
 
-        filename = str(self.checkpoint_dir / 'checkpoint-epoch{}.pth'.format(epoch))
+        filename = str(self.checkpoint_dir + '/checkpoint-epoch{}.pth'.format(epoch))
         torch.save(state, filename)
         self.logger.info('Saving checkpoint: {} ...'.format(filename))
 

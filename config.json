@@ -28,9 +28,9 @@
     }
   },
   "trainer": {
-    "epochs": 50,
+    "epochs": 8,
     "save_dir": "saved/",
-    "save_every": 2,
+    "save_every": 4,
     "verbosity": 2,
     "writer": "wandb",
     "project_name": "gpt2-large",
