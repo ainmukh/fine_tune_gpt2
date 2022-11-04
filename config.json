@@ -34,7 +34,7 @@
     "verbosity": 2,
     "writer": "wandb",
     "project_name": "gpt2-large",
-    "len_epoch": null,
+    "len_epoch": 640,
     "accumulate_n": 32
   }
 }
