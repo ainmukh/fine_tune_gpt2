@@ -57,6 +57,26 @@ class Trainer:
             self._save_checkpoint(self._last_epoch)
             raise e
 
+    def _train_process(self):
+        """
+        Full training logic
+        """
+        for epoch in range(self.start_epoch, self.epochs + 1):
+            self._last_epoch = epoch
+            result = self._train_epoch(epoch)
+
+            # save logged information
+            log = {'epoch': epoch}
+            log.update(result)
+
+            # print logged information
+            for key, value in log.items():
+                self.logger.info('    {:15s}: {}'.format(str(key), value))
+
+            # checkpoint
+            if epoch % self.save_every == 0:
+                self._save_checkpoint(epoch)
+
     def _train_epoch(self, epoch: int) -> dict:
         self.model_16.train()
         self.model_32.train()
@@ -91,29 +111,6 @@ class Trainer:
         print('Max memory allocated: {:.2f}GB'.format(torch.cuda.max_memory_allocated() / 2 ** 30))
         return log
 
-    def _valid_epoch(self, epoch):
-        self.model_16.eval()
-        for batch_idx, batch in enumerate(
-            tqdm(self.val_data_loader, desc='validation', total=len(self.val_data_loader))
-        ):
-            batch = self.tokenizer(
-                batch,
-                padding=True, truncation=True,
-                max_length=1024,
-                pad_to_multiple_of=256,
-                return_tensors='pt'
-            )
-            batch.to('cuda:0')
-            loss = self.model_16(**batch, labels=batch['input_ids'], use_cache=False).loss
-            loss = loss / (self.accumulate_n // self.batch_size)
-
-            self.valid_metrics.update('loss', loss.item(), n=self.batch_size)
-
-        self.writer.set_step(epoch * self.len_epoch, 'valid')
-        # self._log_predictions() TODO
-
-        return self.valid_metrics.result()
-
     def _train_iteration(self, batch, batch_num: int, epoch: int):
         batch = self.tokenizer(
             batch,
@@ -125,28 +122,66 @@ class Trainer:
         batch.to('cuda:0')
 
         loss = self.model_16(**batch, labels=batch['input_ids'], use_cache=False).loss
-        loss = loss / (self.accumulate_n // self.batch_size)  # TODO
+        loss = loss / self.accumulate_n
         loss.backward()
+
+        batch.to('cpu')
+
+        self.writer.set_step((epoch - 1) * self.len_epoch + batch_num)
+        self.train_metrics.update('loss', loss.item())
+        self.train_metrics.update('grad norm', self._get_grad_norm())
 
         if batch_num % self.accumulate_n == 0:
             self._copy_grad()
+            self._remove_grad()
 
             self.optimizer.step()
             self.optimizer.zero_grad()
 
             self._copy_param()
 
-        self.writer.set_step((epoch - 1) * self.len_epoch + batch_num)
-        self.train_metrics.update('loss', loss.item())
-        self.train_metrics.update('grad norm', self._get_grad_norm())
         if batch_num % self.log_step == 0:
             self._log_scalars(self.train_metrics)
+
+    def _valid_epoch(self, epoch):
+        self.model_16.eval()
+        self.valid_metrics.reset()
+        with torch.no_grad:
+            for batch_idx, batch in enumerate(
+                tqdm(self.val_data_loader, desc='validation', total=len(self.val_data_loader))
+            ):
+                batch = self.tokenizer(
+                    batch,
+                    padding=True, truncation=True,
+                    max_length=1024,
+                    pad_to_multiple_of=256,
+                    return_tensors='pt'
+                )
+                batch.to('cuda:0')
+                loss = self.model_16(**batch, labels=batch['input_ids'], use_cache=False).loss
+                loss = loss
+
+                batch.to('cpu')
+
+                self.valid_metrics.update('loss', loss.item(), n=self.batch_size)
+
+        self.writer.set_step(epoch * self.len_epoch, 'valid')
+        self._log_scalars(self.valid_metrics)
+        # self._log_predictions() TODO
+
+        return self.valid_metrics.result()
 
     def _log_scalars(self, metric_tracker: MetricTracker):
         if self.writer is None:
             return
         for metric_name in metric_tracker.keys():
             self.writer.add_scalar(f'{metric_name}', metric_tracker.avg(metric_name))
+
+    def _remove_grad(self):
+        for p in self.model_16.parameters():
+            if p.grad is not None:
+                del p.grad
+        torch.cuda.empty_cache()
 
     def _copy_grad(self):
         for p_32, p_16 in zip(self.model_32.parameters(), self.model_16.parameters()):
@@ -155,26 +190,6 @@ class Trainer:
     def _copy_param(self):
         for p_32, p_16 in zip(self.model_32.parameters(), self.model_16.parameters()):
             p_16 = p_32.to('cuda', dtype=torch.float16)  # TODO
-
-    def _train_process(self):
-        """
-        Full training logic
-        """
-        for epoch in range(self.start_epoch, self.epochs + 1):
-            self._last_epoch = epoch
-            result = self._train_epoch(epoch)
-
-            # save logged information
-            log = {'epoch': epoch}
-            log.update(result)
-
-            # print logged information
-            for key, value in log.items():
-                self.logger.info('    {:15s}: {}'.format(str(key), value))
-
-            # checkpoint
-            if epoch % self.save_every == 0:
-                self._save_checkpoint(epoch)
 
     def _save_checkpoint(self, epoch):
         """
