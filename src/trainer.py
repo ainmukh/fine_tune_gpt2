@@ -68,7 +68,7 @@ class Trainer:
             start=1
         ):
             try:
-                self._train_iteration(batch, batch_idx)
+                self._train_iteration(batch, batch_idx, epoch)
             except RuntimeError as e:
                 if 'out of memory' in str(e):
                     self.logger.warning('OOM on batch. Skipping batch.')
@@ -114,7 +114,7 @@ class Trainer:
 
         return self.valid_metrics.result()
 
-    def _train_iteration(self, batch, batch_num: int):
+    def _train_iteration(self, batch, batch_num: int, epoch: int):
         batch = self.tokenizer(
             batch,
             padding=True, truncation=True,
@@ -129,7 +129,6 @@ class Trainer:
         loss.backward()
 
         if batch_num % self.accumulate_n == 0:
-            self.train_metrics.update('grad norm', self._get_grad_norm())
             self._copy_grad()
 
             self.optimizer.step()
@@ -137,8 +136,10 @@ class Trainer:
 
             self._copy_param()
 
+        self.writer.set_step((epoch - 1) * self.len_epoch + batch_num)
         self.train_metrics.update('loss', loss.item())
-        if batch_num % self.log_step == 0 and batch_num:
+        self.train_metrics.update('grad norm', self._get_grad_norm())
+        if batch_num % self.log_step == 0:
             self._log_scalars(self.train_metrics)
 
     def _log_scalars(self, metric_tracker: MetricTracker):
