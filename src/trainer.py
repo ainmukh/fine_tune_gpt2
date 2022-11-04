@@ -146,7 +146,7 @@ class Trainer:
     def _valid_epoch(self, epoch):
         self.model_16.eval()
         self.valid_metrics.reset()
-        with torch.no_grad:
+        with torch.no_grad():
             for batch_idx, batch in enumerate(
                 tqdm(self.val_data_loader, desc='validation', total=len(self.val_data_loader))
             ):
