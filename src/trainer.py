@@ -152,7 +152,7 @@ class Trainer:
                 tqdm(self.val_data_loader, desc='validation', total=len(self.val_data_loader))
             ):
                 batch = self.tokenizer(
-                    batch,
+                    batch[self.data_key],
                     padding=True, truncation=True,
                     max_length=1024,
                     pad_to_multiple_of=256,
