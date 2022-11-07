@@ -1,0 +1,40 @@
+{
+  "data": {
+    "train": {
+      "dataset": {
+        "path": "codeparrot/codeparrot-clean",
+        "name": null,
+        "key": "content",
+        "batch_size": 2
+      }
+    },
+    "validation": {
+      "dataset": {
+        "path": "codeparrot/codeparrot-clean",
+        "name": null,
+        "key": "content",
+        "batch_size": 2
+      }
+    }
+  },
+  "model": {
+    "model_name": "gpt2-xl"
+  },
+  "optimizer": {
+    "args": {
+      "lr": 2e-4,
+      "betas": [0.8, 0.99],
+      "weight_decay": 0.01
+    }
+  },
+  "trainer": {
+    "epochs": 8,
+    "save_dir": "saved/",
+    "save_every": 4,
+    "verbosity": 2,
+    "writer": "wandb",
+    "project_name": "gpt2-xl",
+    "len_epoch": 640,
+    "accumulate_n": 32
+  }
+}

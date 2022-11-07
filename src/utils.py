@@ -17,7 +17,8 @@ def create_dataloaders(config) -> dict:
         path, name, key = dataset_params['path'], dataset_params['name'], dataset_params['key']
         if path.startswith('codeparrot'):
             cur_path = path + '-'
-            cur_path = cur_path + split if split == 'train' else 'valid'
+            split_for_path = split if split == 'train' else 'valid'
+            cur_path = cur_path + split_for_path
             dataset = load_dataset(path=cur_path, name=name, split='train')
         else:
             dataset = load_dataset(path=path, name=name, split=split)
