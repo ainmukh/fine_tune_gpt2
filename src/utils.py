@@ -15,8 +15,13 @@ def create_dataloaders(config) -> dict:
         # load dataset
         dataset_params = params['dataset']
         path, name, key = dataset_params['path'], dataset_params['name'], dataset_params['key']
-        dataset = load_dataset(path=path, name=name, split=split)
-        dataset = dataset.unique(key)
+        if path.startswith('codeparrot'):
+            cur_path = path + '-'
+            cur_path = cur_path + split if split == 'train' else 'valid'
+            dataset = load_dataset(path=cur_path, name=name, split='train')
+        else:
+            dataset = load_dataset(path=path, name=name, split=split)
+        # dataset = dataset.unique(key)
 
         batch_size = dataset_params['batch_size']
 

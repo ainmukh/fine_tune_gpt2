@@ -42,6 +42,7 @@ class Trainer:
         )
         self.log_step = 10
 
+        self.data_key = config['data']['train']['dataset']['key']
         self.data_loader = data_loader
         self.val_data_loader = val_data_loader
         self.do_validation = val_data_loader is not None
@@ -113,7 +114,7 @@ class Trainer:
 
     def _train_iteration(self, batch, batch_num: int, epoch: int):
         batch = self.tokenizer(
-            batch,
+            batch[self.data_key],
             padding=True, truncation=True,
             max_length=1024,
             pad_to_multiple_of=256,
