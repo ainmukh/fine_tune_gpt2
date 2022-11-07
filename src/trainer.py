@@ -28,6 +28,7 @@ class Trainer:
         self.save_every = trainer_config['save_every']
         self.checkpoint_dir = trainer_config['save_dir']
         self.len_epoch = trainer_config['len_epoch'] or len(data_loader)
+        self.len_valid = trainer_config['len_valid']
 
         self.log_dir = self.checkpoint_dir + "/log/" + trainer_config['project_name']
         self.logger = get_logger('trainer', config['trainer']['verbosity'])
@@ -49,6 +50,7 @@ class Trainer:
 
         self.accumulate_n = trainer_config['accumulate_n']
         self.batch_size = data_loader.batch_size
+        self.valid_batch_size = val_data_loader.batch_size
 
     def train(self):
         try:
@@ -116,8 +118,8 @@ class Trainer:
         batch = self.tokenizer(
             batch[self.data_key],
             padding=True, truncation=True,
-            max_length=1024,
-            pad_to_multiple_of=256,
+            # max_length=1024,
+            # pad_to_multiple_of=256,
             return_tensors='pt'
         )
         batch.to('cuda:0')
@@ -149,13 +151,14 @@ class Trainer:
         self.valid_metrics.reset()
         with torch.no_grad():
             for batch_idx, batch in enumerate(
-                tqdm(self.val_data_loader, desc='validation', total=len(self.val_data_loader))
+                tqdm(self.val_data_loader, desc='validation', total=self.len_valid),
+                start=1
             ):
                 batch = self.tokenizer(
                     batch[self.data_key],
                     padding=True, truncation=True,
-                    max_length=1024,
-                    pad_to_multiple_of=256,
+                    # max_length=1024,
+                    # pad_to_multiple_of=256,
                     return_tensors='pt'
                 )
                 batch.to('cuda:0')
@@ -164,7 +167,10 @@ class Trainer:
 
                 batch.to('cpu')
 
-                self.valid_metrics.update('loss', loss.item(), n=self.batch_size)
+                self.valid_metrics.update('loss', loss.item(), n=self.valid_batch_size)
+
+                if batch_idx >= self.len_valid:
+                    break
 
         self.writer.set_step(epoch * self.len_epoch, 'valid')
         self._log_scalars(self.valid_metrics)

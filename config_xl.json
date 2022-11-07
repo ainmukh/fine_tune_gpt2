@@ -13,7 +13,7 @@
         "path": "codeparrot/codeparrot-clean",
         "name": null,
         "key": "content",
-        "batch_size": 2
+        "batch_size": 8
       }
     }
   },
@@ -35,6 +35,7 @@
     "writer": "wandb",
     "project_name": "gpt2-xl",
     "len_epoch": 640,
+    "len_valid": 200,
     "accumulate_n": 32
   }
 }
