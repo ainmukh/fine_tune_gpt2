@@ -134,6 +134,7 @@ class Trainer:
         self.writer.set_step((epoch - 1) * self.len_epoch + batch_num)
         # self.train_metrics.update('loss', loss.item())
         # self.train_metrics.update('grad norm', self._get_grad_norm())
+        grad_norm = self._get_grad_norm()
 
         if batch_num % self.accumulate_n == 0:
             self._copy_grad()
@@ -146,7 +147,7 @@ class Trainer:
 
         if batch_num % self.log_step == 0:
             self._log_scalars(metric_name='loss', val=loss.item())
-            self._log_scalars(metric_name='grad norm', val=self._get_grad_norm())
+            self._log_scalars(metric_name='grad norm', val=grad_norm)
             # self._log_scalars(metric_tracker=self.train_metrics)
 
     def _valid_epoch(self, epoch):
