@@ -23,14 +23,14 @@
   "optimizer": {
     "args": {
       "lr": 2e-4,
-      "betas": [0.8, 0.99],
-      "weight_decay": 0.01
+      "betas": [0.9, 0.999],
+      "weight_decay": 0.001
     }
   },
   "trainer": {
-    "epochs": 8,
+    "epochs": 50,
     "save_dir": "saved/",
-    "save_every": 4,
+    "save_every": 5,
     "verbosity": 2,
     "writer": "wandb",
     "project_name": "gpt2-xl",
