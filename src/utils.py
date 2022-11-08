@@ -22,7 +22,7 @@ def create_dataloaders(config) -> dict:
             cur_path = cur_path + split_for_path
             dataset = load_dataset(path=cur_path, name=name, split='train')
         else:
-            dataset = load_dataset(path=path, name=name, split=split)
+            dataset = load_dataset(path=path, name=name, split='train')
             dataset = dataset.unique(key)
             if split == 'validation':
                 dataset = np.random.choice(dataset, size=64, replace=False)

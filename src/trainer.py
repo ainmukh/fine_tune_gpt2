@@ -28,7 +28,7 @@ class Trainer:
         self.save_every = trainer_config['save_every']
         self.checkpoint_dir = trainer_config['save_dir']
         self.len_epoch = trainer_config['len_epoch'] or len(data_loader)
-        self.len_valid = trainer_config['len_valid']
+        self.len_valid = trainer_config['len_valid'] or len(val_data_loader)
 
         self.log_dir = self.checkpoint_dir + "/log/" + trainer_config['project_name']
         self.logger = get_logger('trainer', config['trainer']['verbosity'])
@@ -132,8 +132,8 @@ class Trainer:
         batch.to('cpu')
 
         self.writer.set_step((epoch - 1) * self.len_epoch + batch_num)
-        self.train_metrics.update('loss', loss.item())
-        self.train_metrics.update('grad norm', self._get_grad_norm())
+        # self.train_metrics.update('loss', loss.item())
+        # self.train_metrics.update('grad norm', self._get_grad_norm())
 
         if batch_num % self.accumulate_n == 0:
             self._copy_grad()
@@ -145,7 +145,9 @@ class Trainer:
             self._copy_param()
 
         if batch_num % self.log_step == 0:
-            self._log_scalars(self.train_metrics)
+            self._log_scalars(metric_name='loss', val=loss.item())
+            self._log_scalars(metric_name='grad norm', val=self._get_grad_norm())
+            # self._log_scalars(metric_tracker=self.train_metrics)
 
     def _valid_epoch(self, epoch):
         self.model_16.eval()
@@ -174,13 +176,16 @@ class Trainer:
                     break
 
         self.writer.set_step(epoch * self.len_epoch, 'valid')
-        self._log_scalars(self.valid_metrics)
+        self._log_scalars(metric_tracker=self.valid_metrics)
         # self._log_predictions() TODO
 
         return self.valid_metrics.result()
 
-    def _log_scalars(self, metric_tracker: MetricTracker):
+    def _log_scalars(self, metric_name: str = None, val: float = None, metric_tracker: MetricTracker = None):
         if self.writer is None:
+            return
+        if metric_tracker is None:
+            self.writer.add_scalar(f'{metric_name}', val)
             return
         for metric_name in metric_tracker.keys():
             self.writer.add_scalar(f'{metric_name}', metric_tracker.avg(metric_name))
