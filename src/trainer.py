@@ -116,7 +116,8 @@ class Trainer:
 
     def _train_iteration(self, batch, batch_num: int, epoch: int):
         batch = self.tokenizer(
-            batch[self.data_key],
+            # batch[self.data_key],
+            batch,
             padding=True, truncation=True,
             # max_length=1024,
             # pad_to_multiple_of=256,
@@ -155,7 +156,8 @@ class Trainer:
                 start=1
             ):
                 batch = self.tokenizer(
-                    batch[self.data_key],
+                    # batch[self.data_key],
+                    batch,
                     padding=True, truncation=True,
                     # max_length=1024,
                     # pad_to_multiple_of=256,
@@ -163,7 +165,6 @@ class Trainer:
                 )
                 batch.to('cuda:0')
                 loss = self.model_16(**batch, labels=batch['input_ids'], use_cache=False).loss
-                loss = loss / self.accumulate_n
 
                 batch.to('cpu')
 

@@ -2,18 +2,18 @@
   "data": {
     "train": {
       "dataset": {
-        "path": "codeparrot/codeparrot-clean",
-        "name": null,
-        "key": "content",
+        "path": "wikitext",
+        "name": "wikitext-2-v1",
+        "key": "text",
         "batch_size": 2
       }
     },
     "validation": {
       "dataset": {
-        "path": "codeparrot/codeparrot-clean",
-        "name": null,
-        "key": "content",
-        "batch_size": 8
+        "path": "wikitext",
+        "name": "wikitext-2-v1",
+        "key": "text",
+        "batch_size": 2
       }
     }
   },
@@ -34,8 +34,8 @@
     "verbosity": 2,
     "writer": "wandb",
     "project_name": "gpt2-xl",
-    "len_epoch": 640,
-    "len_valid": 200,
+    "len_epoch": 320,
+    "len_valid": null,
     "accumulate_n": 32
   }
 }

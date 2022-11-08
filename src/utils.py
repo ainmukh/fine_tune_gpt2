@@ -2,6 +2,7 @@ import torch
 import transformers
 from datasets import load_dataset
 from torch.utils.data import DataLoader
+import numpy as np
 import pandas as pd
 import logging
 
@@ -22,7 +23,9 @@ def create_dataloaders(config) -> dict:
             dataset = load_dataset(path=cur_path, name=name, split='train')
         else:
             dataset = load_dataset(path=path, name=name, split=split)
-        # dataset = dataset.unique(key)
+            dataset = dataset.unique(key)
+            if split == 'validation':
+                dataset = np.random.choice(dataset, size=64, replace=False)
 
         batch_size = dataset_params['batch_size']
 
